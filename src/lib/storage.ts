@@ -21,13 +21,17 @@ export function saveLibrary(lib: LibraryEntry[]): void {
   localStorage.setItem(LIB_KEY, JSON.stringify(lib));
 }
 
-export function upsertLibraryEntry(entry: LibraryEntry): LibraryEntry[] {
+export function upsertLibraryEntry(entry: Partial<LibraryEntry> & { videoId: string }): LibraryEntry[] {
   const lib = loadLibrary();
   const idx = lib.findIndex((v) => v.videoId === entry.videoId);
   if (idx >= 0) {
     lib[idx] = { ...lib[idx], ...entry };
   } else {
-    lib.push(entry);
+    lib.push({
+      videoId: entry.videoId,
+      title: entry.title ?? `Video ${entry.videoId}`,
+      lastOpened: entry.lastOpened,
+    });
   }
   saveLibrary(lib);
   return lib;

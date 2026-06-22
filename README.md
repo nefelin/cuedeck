@@ -1,4 +1,8 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Loopstation / Cuedeck — YouTube practice bookmarks with cue loops.
+
+## Specs
+
+- [Note visualization MVP](docs/spec-note-visualization-mvp.md) — offline CLI analysis + piano keyboard in the UI
 
 ## Getting Started
 

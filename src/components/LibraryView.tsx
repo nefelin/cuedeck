@@ -1,7 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
+import { ImportConflictDialog, ImportErrorDialog } from "@/components/ImportDialog";
+import type { ImportPreview, ImportConflictStrategy } from "@/lib/exportImport";
+import {
+  applyImport,
+  downloadExport,
+  exportFullLibrary,
+  parseImportFile,
+  previewImport,
+} from "@/lib/exportImport";
 import type { LibraryEntry } from "@/lib/types";
 import {
   loadLibrary,
@@ -19,6 +28,9 @@ export function LibraryView({ onOpenVideo }: LibraryViewProps) {
   const [library, setLibrary] = useState<LibraryEntry[]>([]);
   const [urlInput, setUrlInput] = useState("");
   const [addError, setAddError] = useState("");
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(() => {
     const lib = loadLibrary().sort(
@@ -80,8 +92,69 @@ export function LibraryView({ onOpenVideo }: LibraryViewProps) {
     }
   };
 
+  const handleExport = () => {
+    downloadExport(exportFullLibrary());
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    try {
+      const raw = await file.text();
+      const data = parseImportFile(raw);
+      const preview = previewImport(data);
+
+      if (preview.conflicts.length > 0) {
+        setImportPreview(preview);
+      } else {
+        applyImport(data, "add-new");
+        refresh();
+      }
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Import failed.");
+    }
+  };
+
+  const finishImport = (strategy: ImportConflictStrategy) => {
+    if (!importPreview) return;
+    if (strategy !== "abort") {
+      applyImport(importPreview.data, strategy);
+      refresh();
+    }
+    setImportPreview(null);
+  };
+
   return (
     <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={handleImportFile}
+      />
+
+      {importPreview && (
+        <ImportConflictDialog
+          conflicts={importPreview.conflicts}
+          newVideoCount={importPreview.newVideoCount}
+          updatedVideoCount={importPreview.updatedVideoCount}
+          onChoose={finishImport}
+        />
+      )}
+
+      {importError && (
+        <ImportErrorDialog
+          message={importError}
+          onClose={() => setImportError(null)}
+        />
+      )}
       <div className="flex gap-2 mb-2">
         <input
           type="text"
@@ -100,13 +173,30 @@ export function LibraryView({ onOpenVideo }: LibraryViewProps) {
         {addError}
       </p>
 
-      <div className="flex items-baseline justify-between mt-7 mb-3 border-b-2 border-ink pb-2">
+      <div className="flex items-baseline justify-between mt-7 mb-3 border-b-2 border-ink pb-2 gap-3 flex-wrap">
         <h2 className="text-sm m-0 uppercase tracking-widest font-bold">
           Your videos
         </h2>
-        <span className="font-mono text-[11px] text-muted">
-          {library.length} saved
-        </span>
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="font-mono text-[11px] text-muted">
+            {library.length} saved
+          </span>
+          <Button
+            variant="ghost"
+            size="small"
+            onClick={handleImportClick}
+          >
+            Import
+          </Button>
+          <Button
+            variant="ghost"
+            size="small"
+            onClick={handleExport}
+            disabled={library.length === 0}
+          >
+            Export
+          </Button>
+        </div>
       </div>
 
       {library.length === 0 ? (

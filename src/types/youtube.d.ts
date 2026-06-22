@@ -10,6 +10,8 @@ declare namespace YT {
 
   interface PlayerOptions {
     videoId?: string;
+    width?: string | number;
+    height?: string | number;
     playerVars?: Record<string, string | number>;
     events?: {
       onReady?: (event: { target: Player }) => void;

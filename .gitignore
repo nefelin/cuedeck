@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# offline note analysis output (see docs/spec-note-visualization-mvp.md)
+/public/analysis/*.json
+/data/samples/
