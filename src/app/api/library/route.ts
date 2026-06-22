@@ -1,8 +1,7 @@
 import { auth } from "@/auth";
 import { getUserLibrary, saveUserLibrary } from "@/lib/db";
 import type { UserLibrarySnapshot } from "@/lib/types";
-
-const emptySnapshot: UserLibrarySnapshot = { library: [], cues: {} };
+import { emptyLibrarySnapshot } from "@/lib/librarySnapshot";
 
 export async function GET() {
   const session = await auth();
@@ -12,7 +11,7 @@ export async function GET() {
 
   try {
     const data = await getUserLibrary(session.user.id);
-    return Response.json(data ?? emptySnapshot);
+    return Response.json(data ?? emptyLibrarySnapshot);
   } catch (err) {
     console.error("GET /api/library failed:", err);
     return Response.json({ error: "Failed to load library." }, { status: 500 });

@@ -1,4 +1,5 @@
 import { neon } from "@neondatabase/serverless";
+import { normalizeUserLibrarySnapshot } from "./librarySnapshot";
 import type { UserLibrarySnapshot } from "./types";
 
 function getSql() {
@@ -19,13 +20,7 @@ export async function getUserLibrary(
 
   if (rows.length === 0) return null;
 
-  const data = rows[0].data as UserLibrarySnapshot | null;
-  if (!data || !Array.isArray(data.library)) return null;
-
-  return {
-    library: data.library,
-    cues: data.cues ?? {},
-  };
+  return normalizeUserLibrarySnapshot(rows[0].data);
 }
 
 export async function saveUserLibrary(

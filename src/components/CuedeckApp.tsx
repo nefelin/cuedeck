@@ -18,7 +18,7 @@ import type { View } from "@/lib/types";
 import { cn } from "@/lib/cn";
 
 export function CuedeckApp() {
-  const { isReady } = useLibrary();
+  const { isReady, hydrationError, retryHydration } = useLibrary();
   const { data: session } = useSession();
   const [view, setView] = useState<View>("library");
   const [activeVideo, setActiveVideo] = useState<{
@@ -83,9 +83,22 @@ export function CuedeckApp() {
               : { label: "Sign in", onClick: signInWithGoogle },
           ]}
         />
-        <p className="font-mono text-xs text-muted py-10 text-center">
-          Loading your library…
-        </p>
+        {hydrationError ? (
+          <div className="font-mono text-xs text-center py-10 px-5 border border-edge bg-white">
+            <p className="text-accent-dim m-0 mb-4">{hydrationError}</p>
+            <button
+              type="button"
+              onClick={retryHydration}
+              className="font-mono text-[11px] uppercase tracking-wide px-3 py-2 border border-edge bg-paper hover:bg-paper-dim cursor-pointer"
+            >
+              Try again
+            </button>
+          </div>
+        ) : (
+          <p className="font-mono text-xs text-muted py-10 text-center">
+            Loading your library…
+          </p>
+        )}
       </div>
     );
   }

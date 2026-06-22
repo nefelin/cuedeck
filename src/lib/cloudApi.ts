@@ -1,20 +1,45 @@
 import type { UserLibrarySnapshot } from "./types";
+import { normalizeUserLibrarySnapshot } from "./librarySnapshot";
 
-const emptySnapshot: UserLibrarySnapshot = { library: [], cues: {} };
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export async function fetchUserLibrary(): Promise<UserLibrarySnapshot> {
-  const res = await fetch("/api/library", { cache: "no-store" });
-  if (res.status === 401) {
-    throw new Error("Unauthorized");
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    if (attempt > 0) {
+      await wait(250 * attempt);
+    }
+
+    try {
+      const res = await fetch("/api/library", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+
+      if (res.status === 401) {
+        lastError = new Error("Unauthorized");
+        continue;
+      }
+
+      if (!res.ok) {
+        throw new Error("Could not load your library.");
+      }
+
+      const data = normalizeUserLibrarySnapshot(await res.json());
+      if (!data) {
+        throw new Error("Could not parse your library.");
+      }
+
+      return data;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error("Could not load library.");
+    }
   }
-  if (!res.ok) {
-    throw new Error("Could not load your library.");
-  }
-  const data = (await res.json()) as UserLibrarySnapshot;
-  return {
-    library: Array.isArray(data.library) ? data.library : [],
-    cues: data.cues && typeof data.cues === "object" ? data.cues : {},
-  };
+
+  throw lastError ?? new Error("Could not load your library.");
 }
 
 export async function saveUserLibrary(
@@ -24,6 +49,7 @@ export async function saveUserLibrary(
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(snapshot),
+    credentials: "same-origin",
   });
   if (res.status === 401) {
     throw new Error("Unauthorized");
@@ -32,5 +58,3 @@ export async function saveUserLibrary(
     throw new Error("Could not save your library.");
   }
 }
-
-export { emptySnapshot };

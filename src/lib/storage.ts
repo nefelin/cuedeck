@@ -59,9 +59,19 @@ export function activateGuestMode(): void {
   memorySnapshot = { library: [], cues: {} };
 }
 
+/** @internal test helper */
+export function resetStorageForTests(): void {
+  mode = "guest";
+  memorySnapshot = { library: [], cues: {} };
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = null;
+  savePromise = null;
+}
+
 export function activateAuthenticatedMode(snapshot: UserLibrarySnapshot): void {
   mode = "authenticated";
   memorySnapshot = cloneSnapshot(snapshot);
+  notifyChange();
 }
 
 export async function flushToCloud(): Promise<void> {
@@ -228,10 +238,7 @@ export function replaceAllData(
   notifyChange();
 }
 
-export function snapshotIsEmpty(snapshot: UserLibrarySnapshot): boolean {
-  if (snapshot.library.length > 0) return false;
-  return !Object.values(snapshot.cues).some((cues) => cues.length > 0);
-}
+export { snapshotIsEmpty } from "./librarySnapshot";
 
 export function getSnapshot(): UserLibrarySnapshot {
   if (mode === "authenticated") {
