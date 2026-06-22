@@ -1,3 +1,7 @@
+"use client";
+
+import { AuthButton } from "@/components/AuthButton";
+
 interface HeaderProps {
   onHome: () => void;
   compact?: boolean;
@@ -22,11 +26,14 @@ export function Header({ onHome, compact }: HeaderProps) {
           Loopstation
         </h1>
       </button>
-      {!compact && (
-        <div className="font-mono text-[11px] text-muted uppercase tracking-wide">
-          bookmark &amp; loop tool for practice
-        </div>
-      )}
+      <div className="flex items-center gap-3 ml-auto">
+        {!compact && (
+          <div className="font-mono text-[11px] text-muted uppercase tracking-wide hidden md:block">
+            bookmark &amp; loop tool for practice
+          </div>
+        )}
+        <AuthButton />
+      </div>
     </header>
   );
 }

@@ -16,3 +16,8 @@ export interface Bookmark {
 export type View = "library" | "player";
 
 export type DeckStatusKind = "loading" | "error";
+
+export interface UserLibrarySnapshot {
+  library: LibraryEntry[];
+  cues: Record<string, Bookmark[]>;
+}

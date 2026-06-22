@@ -43,6 +43,11 @@ export function LibraryView({ onOpenVideo }: LibraryViewProps) {
     refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    window.addEventListener("cuedeck-storage-updated", refresh);
+    return () => window.removeEventListener("cuedeck-storage-updated", refresh);
+  }, [refresh]);
+
   const handleAdd = () => {
     setAddError("");
     const id = extractVideoId(urlInput);

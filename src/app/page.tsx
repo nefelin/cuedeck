@@ -1,5 +1,10 @@
 import { CuedeckApp } from "@/components/CuedeckApp";
+import { AppProviders } from "@/components/AppProviders";
 
 export default function Home() {
-  return <CuedeckApp />;
+  return (
+    <AppProviders>
+      <CuedeckApp />
+    </AppProviders>
+  );
 }

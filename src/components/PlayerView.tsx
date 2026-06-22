@@ -95,6 +95,15 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
   }, [titleHint]);
 
   useEffect(() => {
+    const onStorageUpdate = () => {
+      setBookmarks(loadBookmarksFor(videoId));
+    };
+    window.addEventListener("cuedeck-storage-updated", onStorageUpdate);
+    return () =>
+      window.removeEventListener("cuedeck-storage-updated", onStorageUpdate);
+  }, [videoId]);
+
+  useEffect(() => {
     setActiveBookmarkId(null);
     setShowCapture(false);
     setEditingBookmark(null);
