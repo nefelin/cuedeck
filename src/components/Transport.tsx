@@ -3,8 +3,6 @@
 import type { Bookmark } from "@/lib/types";
 import { fmtTime } from "@/lib/youtube";
 import { Button } from "@/components/Button";
-import { NudgeButtons } from "@/components/NudgeButtons";
-import { cn } from "@/lib/cn";
 
 interface TransportProps {
   currentTime: number;
@@ -122,129 +120,6 @@ export function Transport({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-interface CaptureBarProps {
-  variant?: "full" | "details";
-  start: string;
-  end: string;
-  title: string;
-  desc: string;
-  useEnd: boolean;
-  onStartChange: (v: string) => void;
-  onEndChange: (v: string) => void;
-  onTitleChange: (v: string) => void;
-  onDescChange: (v: string) => void;
-  onUseEndChange: (v: boolean) => void;
-  onNudgeStart: (deltaSeconds: number) => void;
-  onSave: () => void;
-  onCancel: () => void;
-}
-
-export function CaptureBar({
-  variant = "full",
-  start,
-  end,
-  title,
-  desc,
-  useEnd,
-  onStartChange,
-  onEndChange,
-  onTitleChange,
-  onDescChange,
-  onUseEndChange,
-  onNudgeStart,
-  onSave,
-  onCancel,
-}: CaptureBarProps) {
-  const isDetails = variant === "details";
-
-  return (
-    <div className="flex gap-2 items-center bg-paper-dim border-[1.5px] border-ink border-t-0 p-3 flex-wrap">
-      {!isDetails && (
-        <>
-          <div className="flex flex-col gap-0.5">
-            <label className="font-mono text-[9px] uppercase tracking-widest text-muted">
-              Start
-            </label>
-            <div className="flex items-center gap-1">
-              <input
-                type="text"
-                value={start}
-                onChange={(e) => onStartChange(e.target.value)}
-                placeholder="0:00"
-                className="font-mono text-[13px] bg-white border-[1.5px] border-ink px-2 py-1.5 w-[74px] text-center"
-              />
-              <NudgeButtons size="md" label="" onNudge={onNudgeStart} />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-0.5 flex-1 min-w-[140px]">
-            <label className="font-mono text-[9px] uppercase tracking-widest text-muted">
-              Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => onTitleChange(e.target.value)}
-              placeholder="e.g. Bridge — chord change"
-              className="font-display text-[13px] bg-white border-[1.5px] border-ink px-2.5 py-2"
-            />
-          </div>
-        </>
-      )}
-
-      <label
-        className={cn(
-          "flex items-center gap-1.5 font-mono text-[10px] text-muted cursor-pointer select-none",
-          !isDetails && "mt-4",
-        )}
-      >
-        <input
-          type="checkbox"
-          checked={useEnd}
-          onChange={(e) => onUseEndChange(e.target.checked)}
-          className="accent-accent"
-        />
-        use end point
-      </label>
-
-      {useEnd && (
-        <div className="flex flex-col gap-0.5">
-          <label className="font-mono text-[9px] uppercase tracking-widest text-muted">
-            End
-          </label>
-          <input
-            type="text"
-            value={end}
-            onChange={(e) => onEndChange(e.target.value)}
-            placeholder="0:00"
-            className="font-mono text-[13px] bg-white border-[1.5px] border-ink px-2 py-1.5 w-[74px] text-center"
-          />
-        </div>
-      )}
-
-      <div className="flex flex-col gap-0.5 flex-[2] min-w-[160px]">
-        <label className="font-mono text-[9px] uppercase tracking-widest text-muted">
-          Description (optional)
-        </label>
-        <input
-          type="text"
-          value={desc}
-          onChange={(e) => onDescChange(e.target.value)}
-          placeholder="Notes for yourself…"
-          className="font-display text-[13px] bg-white border-[1.5px] border-ink px-2.5 py-2"
-        />
-      </div>
-
-      <Button variant="tape" size="small" onClick={onSave} className={!isDetails ? "mt-4" : ""}>
-        Save
-      </Button>
-      <Button variant="ghost" size="small" onClick={onCancel} className={!isDetails ? "mt-4" : ""}>
-        Cancel
-      </Button>
     </div>
   );
 }

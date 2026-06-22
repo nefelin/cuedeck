@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CaptureModal } from "@/components/CaptureModal";
 import { CueSidebar } from "@/components/CueSidebar";
-import { CaptureBar, Transport } from "@/components/Transport";
+import { Transport } from "@/components/Transport";
 import { VideoDeck } from "@/components/VideoDeck";
 import { whenYTReady, useYouTubeApi } from "@/hooks/useYouTubeApi";
 import {
@@ -47,13 +48,13 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
   const [statusSub, setStatusSub] = useState("Connecting to YouTube");
 
   const [showCapture, setShowCapture] = useState(false);
-  const [captureVariant, setCaptureVariant] = useState<"full" | "details">("full");
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [capStart, setCapStart] = useState("");
   const [capEnd, setCapEnd] = useState("");
   const [capTitle, setCapTitle] = useState("");
   const [capDesc, setCapDesc] = useState("");
   const [capUseEnd, setCapUseEnd] = useState(false);
+  const [capLoop, setCapLoop] = useState(false);
 
   bookmarksRef.current = bookmarks;
   activeBookmarkIdRef.current = activeBookmarkId;
@@ -261,25 +262,6 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
     setActiveBookmarkId(newBm.id);
   }, [persistBookmarks]);
 
-  const nudgeCueStart = useCallback(
-    (bm: Bookmark, deltaSeconds: number) => {
-      const newStart = clampStart(bm.start + deltaSeconds, bm.end);
-      const updated = bookmarksRef.current.map((b) =>
-        b.id === bm.id ? { ...b, start: newStart } : b,
-      );
-      persistBookmarks(updated);
-      setActiveBookmarkId(bm.id);
-      seekAndPlay(newStart);
-      if (editingBookmark?.id === bm.id) {
-        setCapStart(fmtTime(newStart));
-        setEditingBookmark((prev) =>
-          prev ? { ...prev, start: newStart } : prev,
-        );
-      }
-    },
-    [clampStart, persistBookmarks, seekAndPlay, editingBookmark?.id],
-  );
-
   const nudgeCaptureStart = useCallback(
     (deltaSeconds: number) => {
       const current = parseTime(capStart) ?? editingBookmark?.start ?? 0;
@@ -287,41 +269,20 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
       const newStart = clampStart(current + deltaSeconds, end);
       setCapStart(fmtTime(newStart));
       seekAndPlay(newStart);
-      if (editingBookmark) {
-        const updated = bookmarksRef.current.map((b) =>
-          b.id === editingBookmark.id ? { ...b, start: newStart } : b,
-        );
-        persistBookmarks(updated);
-        setEditingBookmark((prev) =>
-          prev ? { ...prev, start: newStart } : prev,
-        );
-      }
     },
-    [capStart, capEnd, capUseEnd, clampStart, editingBookmark, persistBookmarks, seekAndPlay],
+    [capStart, capEnd, capUseEnd, clampStart, editingBookmark, seekAndPlay],
   );
 
-  const updateCueTitle = useCallback(
-    (bm: Bookmark, title: string) => {
-      const updated = bookmarksRef.current.map((b) =>
-        b.id === bm.id ? { ...b, title } : b,
-      );
-      persistBookmarks(updated);
-    },
-    [persistBookmarks],
-  );
+  const playFromCaptureStart = useCallback(() => {
+    const t = parseTime(capStart);
+    if (t == null) return;
+    const end = capUseEnd ? parseTime(capEnd) : editingBookmark?.end ?? null;
+    seekAndPlay(clampStart(t, end));
+  }, [capStart, capEnd, capUseEnd, clampStart, editingBookmark, seekAndPlay]);
 
-  const updateCueStart = useCallback(
-    (bm: Bookmark, start: number) => {
-      const newStart = clampStart(start, bm.end);
-      const updated = bookmarksRef.current.map((b) =>
-        b.id === bm.id ? { ...b, start: newStart } : b,
-      );
-      persistBookmarks(updated);
-      setActiveBookmarkId(bm.id);
-      seekAndPlay(newStart);
-    },
-    [clampStart, persistBookmarks, seekAndPlay],
-  );
+  const pausePlayback = useCallback(() => {
+    playerRef.current?.pauseVideo();
+  }, []);
 
   const activeBookmark = bookmarks.find((b) => b.id === activeBookmarkId);
   const loopLabel =
@@ -329,35 +290,44 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
       ? activeBookmark.title
       : null;
 
-  const openCaptureNew = useCallback(() => {
-    if (!playerReadyRef.current || !playerRef.current) return;
-    setEditingBookmark(null);
-    setCaptureVariant("full");
-    const t = playerRef.current.getCurrentTime();
-    setCapStart(fmtTime(t));
-    setCapUseEnd(false);
-    setCapEnd("");
-    setCapTitle("");
-    setCapDesc("");
-    setShowCapture(true);
-  }, []);
+  const openCaptureForm = useCallback(
+    (bm: Bookmark | null) => {
+      setEditingBookmark(bm);
+      if (bm) {
+        setCapStart(fmtTime(bm.start));
+        setCapUseEnd(bm.end != null);
+        setCapEnd(bm.end != null ? fmtTime(bm.end) : "");
+        setCapTitle(bm.title);
+        setCapDesc(bm.desc || "");
+        setCapLoop(bm.loop);
+      } else {
+        if (!playerReadyRef.current || !playerRef.current) return;
+        const t = playerRef.current.getCurrentTime();
+        setCapStart(fmtTime(t));
+        setCapUseEnd(false);
+        setCapEnd("");
+        setCapTitle("");
+        setCapDesc("");
+        setCapLoop(false);
+      }
+      setShowCapture(true);
+    },
+    [],
+  );
 
-  const openCaptureDetails = useCallback((bm: Bookmark) => {
-    setEditingBookmark(bm);
-    setCaptureVariant("details");
-    setCapStart(fmtTime(bm.start));
-    setCapUseEnd(bm.end != null);
-    setCapEnd(bm.end != null ? fmtTime(bm.end) : "");
-    setCapTitle(bm.title);
-    setCapDesc(bm.desc || "");
-    setShowCapture(true);
-  }, []);
+  const openCaptureNew = useCallback(() => {
+    openCaptureForm(null);
+  }, [openCaptureForm]);
+
+  const openCaptureEdit = useCallback(
+    (bm: Bookmark) => {
+      openCaptureForm(bm);
+    },
+    [openCaptureForm],
+  );
 
   const saveCapture = () => {
-    const start =
-      captureVariant === "details" && editingBookmark
-        ? editingBookmark.start
-        : parseTime(capStart);
+    const start = parseTime(capStart);
     if (start == null) return;
 
     let end: number | null = null;
@@ -368,21 +338,18 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
 
     const defaultTitle = `Cue at ${fmtTime(start)}`;
     const titleVal = capTitle.trim() || defaultTitle;
+    const loop = capUseEnd && capLoop;
 
     if (editingBookmark) {
       const updated = bookmarks.map((b) =>
         b.id === editingBookmark.id
           ? {
               ...b,
+              start,
               end,
-              loop: end != null ? (b.end != null ? b.loop : true) : false,
+              loop,
+              title: capTitle.trim() || b.title,
               desc: capDesc.trim(),
-              ...(captureVariant === "full"
-                ? {
-                    start,
-                    title: capTitle.trim() || b.title,
-                  }
-                : {}),
             }
           : b,
       );
@@ -394,7 +361,7 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
           id: genId("bm"),
           start,
           end,
-          loop: end != null,
+          loop,
           title: titleVal,
           desc: capDesc.trim(),
         },
@@ -419,13 +386,6 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
     setActiveBookmarkId(bm.id);
     playerRef.current.seekTo(bm.start, true);
     playerRef.current.playVideo();
-  };
-
-  const toggleLoop = (bm: Bookmark) => {
-    const updated = bookmarks.map((b) =>
-      b.id === bm.id ? { ...b, loop: !b.loop } : b,
-    );
-    persistBookmarks(updated);
   };
 
   const deleteCue = (bm: Bookmark) => {
@@ -467,8 +427,8 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
   }, [openCaptureNew, addQuickCue]);
 
   return (
-    <>
-      <div className="flex items-center gap-2.5 mb-3.5 min-w-0">
+    <div className="flex flex-col flex-1 min-h-0 max-lg:min-h-0">
+      <div className="flex items-center gap-2 mb-2 min-w-0 shrink-0">
         <button
           type="button"
           onClick={onBack}
@@ -476,17 +436,12 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
         >
           ← Library
         </button>
-        <span className="text-[15px] font-semibold truncate flex-1 min-w-0">
-          {title}
-        </span>
+        <span className="text-sm font-semibold truncate flex-1 min-w-0">{title}</span>
         <Button
           variant="ghost"
           size="small"
           onClick={() =>
-            downloadExport(
-              exportVideo(videoId, title),
-              `cuedeck-${videoId}.json`,
-            )
+            downloadExport(exportVideo(videoId, title), `cuedeck-${videoId}.json`)
           }
           className="shrink-0"
         >
@@ -494,22 +449,8 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
         </Button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4 items-start min-h-0">
-        <CueSidebar
-          bookmarks={bookmarks}
-          activeBookmarkId={activeBookmarkId}
-          onQuickCue={addQuickCue}
-          onAddDetailed={openCaptureNew}
-          onSelectCue={selectCue}
-          onUpdateCueTitle={updateCueTitle}
-          onUpdateCueStart={updateCueStart}
-          onEditCueDetails={openCaptureDetails}
-          onDeleteCue={deleteCue}
-          onToggleLoop={toggleLoop}
-          onNudgeCue={nudgeCueStart}
-        />
-
-        <div className="flex-1 min-w-0 w-full">
+      <div className="flex flex-col lg:flex-row-reverse flex-1 min-h-0 min-w-0 gap-0 lg:gap-4 overflow-hidden">
+        <div className="shrink-0 min-w-0 lg:flex-1 lg:min-w-0">
           <VideoDeck
             deckStatus={deckStatus}
             statusBig={statusBig}
@@ -544,57 +485,59 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
               playerRef.current?.setPlaybackRate(rate);
             }}
           />
-          {showCapture && (
-            <CaptureBar
-              variant={captureVariant}
-              start={capStart}
-              end={capEnd}
-              title={capTitle}
-              desc={capDesc}
-              useEnd={capUseEnd}
-              onStartChange={setCapStart}
-              onEndChange={setCapEnd}
-              onTitleChange={setCapTitle}
-              onDescChange={setCapDesc}
-              onUseEndChange={(v) => {
-                setCapUseEnd(v);
-                if (v && !capEnd && playerRef.current) {
-                  setCapEnd(fmtTime(playerRef.current.getCurrentTime()));
-                }
-              }}
-              onNudgeStart={nudgeCaptureStart}
-              onSave={saveCapture}
-              onCancel={() => {
-                setShowCapture(false);
-                setEditingBookmark(null);
-              }}
-            />
-          )}
         </div>
+
+        <CueSidebar
+          className="min-h-0 min-w-0 max-lg:flex-1"
+          bookmarks={bookmarks}
+          activeBookmarkId={activeBookmarkId}
+          onQuickCue={addQuickCue}
+          onAddDetailed={openCaptureNew}
+          onSelectCue={selectCue}
+          onEditCue={openCaptureEdit}
+          onDeleteCue={deleteCue}
+        />
       </div>
 
-      <p className="font-mono text-[10px] text-line mt-4 text-center tracking-wide">
-        <kbd className="bg-paper-dim border border-line px-1 rounded-sm font-mono">
-          space
-        </kbd>{" "}
-        play/pause &nbsp;
-        <kbd className="bg-paper-dim border border-line px-1 rounded-sm font-mono">
-          C
-        </kbd>{" "}
-        quick cue &nbsp;
-        <kbd className="bg-paper-dim border border-line px-1 rounded-sm font-mono">
-          B
-        </kbd>{" "}
-        cue w/ details &nbsp;
-        <kbd className="bg-paper-dim border border-line px-1 rounded-sm font-mono">
-          ←
-        </kbd>
-        /
-        <kbd className="bg-paper-dim border border-line px-1 rounded-sm font-mono">
-          →
-        </kbd>{" "}
-        seek 5s
+      {showCapture && (
+        <CaptureModal
+          title={editingBookmark ? "Edit cue" : "New cue"}
+          start={capStart}
+          end={capEnd}
+          cueTitle={capTitle}
+          desc={capDesc}
+          useEnd={capUseEnd}
+          loop={capLoop}
+          onStartChange={setCapStart}
+          onEndChange={setCapEnd}
+          onTitleChange={setCapTitle}
+          onDescChange={setCapDesc}
+          onUseEndChange={(v) => {
+            setCapUseEnd(v);
+            if (v && !capEnd && playerRef.current) {
+              setCapEnd(fmtTime(playerRef.current.getCurrentTime()));
+            }
+            if (!v) setCapLoop(false);
+          }}
+          onLoopChange={setCapLoop}
+          onNudgeStart={nudgeCaptureStart}
+          onPlayFromStart={playFromCaptureStart}
+          onPause={pausePlayback}
+          onSave={saveCapture}
+          onCancel={() => {
+            setShowCapture(false);
+            setEditingBookmark(null);
+          }}
+        />
+      )}
+
+      <p className="hidden lg:block font-mono text-[10px] text-line mt-3 text-center tracking-wide shrink-0">
+        <kbd className="bg-paper-dim border border-line px-1 rounded-sm font-mono">space</kbd>{" "}
+        play/pause ·{" "}
+        <kbd className="bg-paper-dim border border-line px-1 rounded-sm font-mono">C</kbd> quick
+        cue ·{" "}
+        <kbd className="bg-paper-dim border border-line px-1 rounded-sm font-mono">B</kbd> new cue
       </p>
-    </>
+    </div>
   );
 }

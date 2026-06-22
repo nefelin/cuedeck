@@ -56,11 +56,72 @@ body::before {
   font-family: var(--font-mono);
 }
 
-#ytPlayer,
+#ytPlayer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 #ytPlayer iframe {
   position: absolute;
   inset: 0;
   width: 100% !important;
   height: 100% !important;
   border: 0;
+}
+
+.swipe-list {
+  width: 100%;
+}
+
+/* Cue swipe list — single scroll container, full-width rows */
+.cue-swipe-list.swipeable-list {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cue-swipe-list .swipeable-list-item {
+  width: 100%;
+  max-width: 100%;
+}
+
+.cue-swipe-list .swipeable-list-item__content {
+  width: 100%;
+  display: block;
+}
+
+.cue-swipe-list .swipeable-list-item__content > * {
+  width: 100%;
+  min-width: 100%;
+  display: block;
+  box-sizing: border-box;
+}
+
+.cue-swipe-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 80px;
+  height: 100%;
+  padding: 0 1rem;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+}
+
+.cue-swipe-action--edit {
+  background: var(--tape);
+}
+
+.cue-swipe-action--delete {
+  background: var(--accent-dim);
 }

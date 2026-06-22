@@ -2,6 +2,10 @@
 
 import type { Bookmark } from "@/lib/types";
 import { CueCard } from "@/components/CueCard";
+import { useSwipeUI } from "@/hooks/useSwipeUI";
+import { SwipeableList, Type as ListType } from "react-swipeable-list";
+import "react-swipeable-list/dist/styles.css";
+import { cn } from "@/lib/cn";
 
 interface CueSidebarProps {
   bookmarks: Bookmark[];
@@ -9,12 +13,9 @@ interface CueSidebarProps {
   onQuickCue: () => void;
   onAddDetailed: () => void;
   onSelectCue: (bm: Bookmark) => void;
-  onUpdateCueTitle: (bm: Bookmark, title: string) => void;
-  onUpdateCueStart: (bm: Bookmark, start: number) => void;
-  onEditCueDetails: (bm: Bookmark) => void;
+  onEditCue: (bm: Bookmark) => void;
   onDeleteCue: (bm: Bookmark) => void;
-  onToggleLoop: (bm: Bookmark) => void;
-  onNudgeCue: (bm: Bookmark, deltaSeconds: number) => void;
+  className?: string;
 }
 
 export function CueSidebar({
@@ -23,62 +24,76 @@ export function CueSidebar({
   onQuickCue,
   onAddDetailed,
   onSelectCue,
-  onUpdateCueTitle,
-  onUpdateCueStart,
-  onEditCueDetails,
+  onEditCue,
   onDeleteCue,
-  onToggleLoop,
-  onNudgeCue,
+  className,
 }: CueSidebarProps) {
+  const swipeUI = useSwipeUI();
+
+  const cards = bookmarks.map((bm, idx) => (
+    <CueCard
+      key={bm.id}
+      bm={bm}
+      index={idx}
+      isActive={bm.id === activeBookmarkId}
+      swipeEnabled={swipeUI}
+      onSelect={() => onSelectCue(bm)}
+      onEdit={() => onEditCue(bm)}
+      onDelete={() => onDeleteCue(bm)}
+    />
+  ));
+
   return (
-    <aside className="flex flex-col w-72 shrink-0 border-[1.5px] border-ink bg-white min-h-0 max-h-[min(720px,calc(100vh-200px))]">
-      <div className="sticky top-0 z-10 bg-paper border-b-[1.5px] border-ink px-3 py-2.5 flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={onQuickCue}
-          className="w-full font-mono text-xs font-semibold uppercase tracking-wide px-3 py-2 bg-accent text-white border-[1.5px] border-accent cursor-pointer transition-[transform,box-shadow] duration-75 hover:-translate-x-px hover:-translate-y-px hover:shadow-[2px_2px_0_var(--color-ink)]"
-        >
-          Quick cue
-        </button>
-        <button
-          type="button"
-          onClick={onAddDetailed}
-          className="w-full font-mono text-[10px] uppercase tracking-wide px-2 py-1 text-muted bg-transparent border-0 cursor-pointer hover:text-ink text-left"
-        >
-          + Add with details…
-        </button>
+    <aside
+      className={cn(
+        "flex flex-col min-h-0 min-w-0 bg-white border-[1.5px] border-ink",
+        "w-full flex-1 lg:flex-none lg:w-72 lg:max-w-[288px] lg:shrink-0",
+        "lg:max-h-[min(720px,calc(100vh-12rem))]",
+        className,
+      )}
+    >
+      <div className="sticky top-0 z-10 bg-paper border-b-[1.5px] border-ink px-3 py-2.5 flex flex-col gap-2 shrink-0">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onQuickCue}
+            className="flex-1 font-mono text-xs font-semibold uppercase tracking-wide px-3 py-2.5 bg-accent text-white border-[1.5px] border-accent cursor-pointer"
+          >
+            Quick cue
+          </button>
+          <button
+            type="button"
+            onClick={onAddDetailed}
+            className="font-mono text-[10px] uppercase tracking-wide px-2.5 py-2 text-muted bg-white border-[1.5px] border-line cursor-pointer hover:border-ink"
+            title="Add with details"
+          >
+            +
+          </button>
+        </div>
         <span className="font-mono text-[11px] text-muted">
           {bookmarks.length} {bookmarks.length === 1 ? "cue" : "cues"}
+          {swipeUI ? " · swipe to edit or delete" : ""}
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-0">
-        {bookmarks.length === 0 ? (
-          <div className="font-mono text-xs text-line p-6 text-center">
-            Press <kbd className="px-1 bg-paper-dim border border-line rounded-sm">C</kbd>{" "}
-            or &ldquo;Quick cue&rdquo; while playing to mark chops fast. Name them
-            inline later.
-          </div>
-        ) : (
-          <div className="flex flex-col">
-            {bookmarks.map((bm, idx) => (
-              <CueCard
-                key={bm.id}
-                bm={bm}
-                index={idx}
-                isActive={bm.id === activeBookmarkId}
-                onSelect={() => onSelectCue(bm)}
-                onUpdateTitle={(title) => onUpdateCueTitle(bm, title)}
-                onUpdateStart={(start) => onUpdateCueStart(bm, start)}
-                onEditDetails={() => onEditCueDetails(bm)}
-                onDelete={() => onDeleteCue(bm)}
-                onToggleLoop={() => onToggleLoop(bm)}
-                onNudge={(delta) => onNudgeCue(bm, delta)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {bookmarks.length === 0 ? (
+        <div className="font-mono text-xs text-line p-6 text-center">
+          Tap <strong className="text-ink">Quick cue</strong> while playing to mark a chop.
+          {swipeUI ? " Swipe a cue to edit or delete." : " Click a cue to play."}
+        </div>
+      ) : swipeUI ? (
+        <SwipeableList
+          type={ListType.IOS}
+          fullSwipe
+          threshold={0.35}
+          destructiveCallbackDelay={0}
+          className="cue-swipe-list flex-1 min-h-0"
+        >
+          {cards}
+        </SwipeableList>
+      ) : (
+        <div className="flex-1 overflow-y-auto min-h-0 flex flex-col">{cards}</div>
+      )}
     </aside>
   );
 }
