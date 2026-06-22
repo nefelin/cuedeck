@@ -9,9 +9,9 @@ import { PlayerView } from "@/components/PlayerView";
 import { useLibrary } from "@/context/LibraryContext";
 import { signInWithGoogle, signOutAndFlush } from "@/lib/authActions";
 import {
-  downloadExport,
   exportFullLibrary,
   exportVideo,
+  shareExport,
 } from "@/lib/exportImport";
 import { loadLibrary } from "@/lib/storage";
 import type { View } from "@/lib/types";
@@ -52,9 +52,9 @@ export function CuedeckApp() {
     if (isPlayer && activeVideo) {
       return [
         {
-          label: "Export cues",
+          label: "Share cues",
           onClick: () =>
-            downloadExport(
+            void shareExport(
               exportVideo(activeVideo.videoId, activeVideo.title),
               `cuedeck-${activeVideo.videoId}.json`,
             ),
@@ -65,8 +65,8 @@ export function CuedeckApp() {
 
     return [
       {
-        label: "Export library",
-        onClick: () => downloadExport(exportFullLibrary()),
+        label: "Share library",
+        onClick: () => void shareExport(exportFullLibrary()),
         disabled: libraryCount === 0,
       },
       auth,
@@ -78,7 +78,7 @@ export function CuedeckApp() {
 
   if (showLoading) {
     return (
-      <div className="relative z-[2] max-w-[1200px] mx-auto px-4 sm:px-5 pt-7 pb-20">
+      <div className="relative z-[2] w-full max-w-[1200px] mx-auto px-4 sm:px-5 pt-7 pb-20 min-w-0 overflow-x-hidden box-border">
         <Header
           onHome={() => {}}
           menuItems={[
@@ -110,7 +110,7 @@ export function CuedeckApp() {
   return (
     <div
       className={cn(
-        "relative z-[2] max-w-[1200px] mx-auto px-4 sm:px-5",
+        "relative z-[2] w-full max-w-[1200px] mx-auto px-4 sm:px-5 min-w-0 overflow-x-hidden box-border",
         isPlayer
           ? "max-lg:h-dvh max-lg:flex max-lg:flex-col max-lg:overflow-hidden max-lg:pt-3 max-lg:pb-0 lg:pt-7 lg:pb-20"
           : "pt-7 pb-20",

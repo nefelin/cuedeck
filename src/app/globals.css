@@ -32,7 +32,14 @@ body {
   color: var(--ink);
   font-family: var(--font-display);
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+}
+
+html {
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 body::before {

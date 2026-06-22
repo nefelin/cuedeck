@@ -56,9 +56,16 @@ export function exportVideo(videoId: string, title: string): CuedeckExport {
   return buildExport([{ videoId, title }]);
 }
 
-export function downloadExport(data: CuedeckExport, filename?: string): void {
+export function exportFilename(
+  data: CuedeckExport,
+  filename?: string,
+): string {
   const stamp = data.exportedAt.slice(0, 10);
-  const name = filename ?? `cuedeck-export-${stamp}.json`;
+  return filename ?? `cuedeck-export-${stamp}.json`;
+}
+
+export function downloadExport(data: CuedeckExport, filename?: string): void {
+  const name = exportFilename(data, filename);
   const blob = new Blob([JSON.stringify(data, null, 2)], {
     type: "application/json",
   });
@@ -68,6 +75,37 @@ export function downloadExport(data: CuedeckExport, filename?: string): void {
   anchor.download = name;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+export async function shareExport(
+  data: CuedeckExport,
+  filename?: string,
+): Promise<void> {
+  const name = exportFilename(data, filename);
+  const json = JSON.stringify(data, null, 2);
+  const file = new File([json], name, { type: "application/json" });
+
+  if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+    try {
+      const shareData: ShareData = {
+        title: "Cuedeck",
+        text: "Cuedeck cues export",
+      };
+
+      if (navigator.canShare?.({ files: [file] })) {
+        shareData.files = [file];
+      } else {
+        shareData.text = json;
+      }
+
+      await navigator.share(shareData);
+      return;
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+    }
+  }
+
+  downloadExport(data, name);
 }
 
 function isBookmark(value: unknown): value is Bookmark {

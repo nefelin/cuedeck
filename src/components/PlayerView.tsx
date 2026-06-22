@@ -246,6 +246,20 @@ export function PlayerView({
     [videoId],
   );
 
+  const skipBy = useCallback(
+    (deltaSeconds: number) => {
+      if (!playerRef.current) return;
+      const dur = playerRef.current.getDuration() || duration;
+      const next = Math.max(
+        0,
+        Math.min(playerRef.current.getCurrentTime() + deltaSeconds, dur),
+      );
+      playerRef.current.seekTo(next, true);
+      setCurrentTime(next);
+    },
+    [duration],
+  );
+
   const seekAndPlay = useCallback((time: number) => {
     if (!playerRef.current) return;
     playerRef.current.seekTo(time, true);
@@ -442,9 +456,9 @@ export function PlayerView({
   }, [openCaptureNew, addQuickCue]);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 max-lg:min-h-0">
-      <div className="flex flex-col lg:flex-row-reverse flex-1 min-h-0 min-w-0 gap-0 lg:gap-4 overflow-hidden">
-        <div className="shrink-0 min-w-0 lg:flex-1 lg:min-w-0">
+    <div className="flex flex-col flex-1 min-h-0 max-lg:min-h-0 min-w-0 max-w-full overflow-hidden">
+      <div className="flex flex-col lg:flex-row-reverse flex-1 min-h-0 min-w-0 max-w-full gap-0 lg:gap-4 overflow-hidden">
+        <div className="shrink-0 min-w-0 max-w-full lg:flex-1 lg:min-w-0">
           <VideoDeck
             deckStatus={deckStatus}
             statusBig={statusBig}
@@ -456,6 +470,7 @@ export function PlayerView({
             isPlaying={isPlaying}
             disabled={!playerReady}
             bookmarks={bookmarks}
+            activeBookmarkId={activeBookmarkId}
             loopLabel={loopLabel}
             playbackRate={playbackRate}
             onPlayPause={() => {
@@ -478,6 +493,8 @@ export function PlayerView({
               setPlaybackRate(rate);
               playerRef.current?.setPlaybackRate(rate);
             }}
+            onSkip={skipBy}
+            onSelectCue={selectCue}
           />
         </div>
 

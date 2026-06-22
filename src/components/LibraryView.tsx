@@ -7,10 +7,10 @@ import { SignInBanner } from "@/components/SignInBanner";
 import type { ImportPreview, ImportConflictStrategy } from "@/lib/exportImport";
 import {
   applyImport,
-  downloadExport,
   exportFullLibrary,
   parseImportFile,
   previewImport,
+  shareExport,
 } from "@/lib/exportImport";
 import type { LibraryEntry } from "@/lib/types";
 import {
@@ -112,8 +112,8 @@ export function LibraryView({ onOpenVideo, onLibraryChange }: LibraryViewProps) 
     }
   };
 
-  const handleExport = () => {
-    downloadExport(exportFullLibrary());
+  const handleShare = () => {
+    void shareExport(exportFullLibrary());
   };
 
   const handleImportClick = () => {
@@ -216,10 +216,10 @@ export function LibraryView({ onOpenVideo, onLibraryChange }: LibraryViewProps) 
           <Button
             variant="ghost"
             size="small"
-            onClick={handleExport}
+            onClick={handleShare}
             disabled={library.length === 0}
           >
-            Export
+            Share
           </Button>
         </div>
       </div>

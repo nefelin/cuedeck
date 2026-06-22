@@ -11,7 +11,7 @@ interface VideoDeckProps {
 
 export function VideoDeck({ deckStatus, statusBig, statusSub }: VideoDeckProps) {
   return (
-    <div className="bg-ink p-2 lg:p-2.5 relative shrink-0">
+    <div className="bg-ink p-2 lg:p-2.5 relative shrink-0 min-w-0 max-w-full overflow-hidden">
       <div className="relative w-full aspect-video max-h-[36dvh] lg:max-h-none bg-black overflow-hidden mx-auto">
         <div
           id="ytPlayer"

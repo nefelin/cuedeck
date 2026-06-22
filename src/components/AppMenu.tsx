@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/cn";
 
 export interface AppMenuItem {
@@ -14,7 +15,45 @@ interface AppMenuProps {
   className?: string;
 }
 
+function MenuTrigger({
+  loading,
+  image,
+  name,
+  email,
+}: {
+  loading: boolean;
+  image?: string | null;
+  name?: string | null;
+  email?: string | null;
+}) {
+  if (loading) {
+    return (
+      <span className="block w-8 h-8 rounded-full border border-line bg-paper-dim shrink-0" />
+    );
+  }
+
+  if (image) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={image}
+        alt=""
+        className="block w-8 h-8 rounded-full border border-line object-cover shrink-0"
+      />
+    );
+  }
+
+  const initial = (name ?? email ?? "?").charAt(0).toUpperCase();
+
+  return (
+    <span className="block w-8 h-8 rounded-full border-[1.5px] border-line bg-white font-mono text-[11px] text-muted flex items-center justify-center shrink-0">
+      {initial}
+    </span>
+  );
+}
+
 export function AppMenu({ items, className }: AppMenuProps) {
+  const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -45,26 +84,45 @@ export function AppMenu({ items, className }: AppMenuProps) {
     item.onClick();
   };
 
+  const user = session?.user;
+  const signedIn = status === "authenticated" && !!user;
+
   return (
     <div ref={rootRef} className={cn("relative", className)}>
       <button
         type="button"
-        aria-label="Menu"
+        aria-label={signedIn ? "Account menu" : "Menu"}
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}
-        className="w-8 h-8 flex flex-col items-center justify-center gap-[3px] border-[1.5px] border-line bg-white hover:border-ink cursor-pointer shrink-0"
+        className="p-0 bg-transparent border-0 cursor-pointer shrink-0 hover:opacity-80"
       >
-        <span className="block w-3.5 h-0.5 bg-ink" />
-        <span className="block w-3.5 h-0.5 bg-ink" />
-        <span className="block w-3.5 h-0.5 bg-ink" />
+        <MenuTrigger
+          loading={status === "loading"}
+          image={user?.image}
+          name={user?.name}
+          email={user?.email}
+        />
       </button>
 
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+6px)] z-50 min-w-[168px] bg-paper border border-edge shadow-[3px_3px_0_var(--color-edge)] py-1"
+          className="absolute right-0 top-[calc(100%+6px)] z-50 min-w-[200px] bg-paper border border-edge shadow-[3px_3px_0_var(--color-edge)] py-1"
         >
+          {signedIn && (
+            <div className="px-3 py-2 border-b border-edge mb-1">
+              {user.name && (
+                <div className="text-xs font-medium truncate">{user.name}</div>
+              )}
+              {user.email && (
+                <div className="font-mono text-[10px] text-muted truncate">
+                  {user.email}
+                </div>
+              )}
+            </div>
+          )}
+
           {items.map((item) => (
             <button
               key={item.label}

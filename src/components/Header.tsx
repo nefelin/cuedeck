@@ -2,7 +2,6 @@
 
 import type { AppMenuItem } from "@/components/AppMenu";
 import { AppMenu } from "@/components/AppMenu";
-import { UserAvatar } from "@/components/UserAvatar";
 
 interface HeaderProps {
   onHome: () => void;
@@ -41,8 +40,7 @@ export function Header({ onHome, compact, menuItems }: HeaderProps) {
         </div>
       )}
 
-      <div className="flex items-center gap-2 ml-auto shrink-0">
-        <UserAvatar />
+      <div className="ml-auto shrink-0">
         <AppMenu items={menuItems} />
       </div>
     </header>
