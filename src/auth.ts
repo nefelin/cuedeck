@@ -1,5 +1,10 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import {
+  migrateLibraryUserId,
+  migrateSingleOrphanedLegacyLibrary,
+} from "@/lib/libraryMigration";
+import { getGoogleUserId, isUuid } from "@/lib/userId";
 
 function env(name: string, fallback?: string): string | undefined {
   const value = process.env[name] ?? (fallback ? process.env[fallback] : undefined);
@@ -37,16 +42,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   trustHost: true,
   callbacks: {
-    jwt({ token, account, profile }) {
-      const profileSub =
-        profile && typeof profile === "object" && "sub" in profile
-          ? String(profile.sub)
-          : undefined;
-      if (account?.providerAccountId) {
-        token.sub = account.providerAccountId;
-      } else if (profileSub) {
-        token.sub = profileSub;
+    async jwt({ token, account, profile }) {
+      const googleId = getGoogleUserId(account, profile);
+
+      if (account && googleId) {
+        const previousSub = token.sub ? String(token.sub) : undefined;
+
+        try {
+          if (previousSub && isUuid(previousSub) && previousSub !== googleId) {
+            await migrateLibraryUserId(googleId, previousSub);
+            token.legacySub = previousSub;
+          } else {
+            await migrateSingleOrphanedLegacyLibrary(googleId);
+          }
+        } catch (err) {
+          console.error("[auth] Library user id migration failed:", err);
+        }
+
+        token.sub = googleId;
       }
+
       return token;
     },
     session({ session, token }) {

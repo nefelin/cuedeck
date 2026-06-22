@@ -1,17 +1,28 @@
+import { getToken } from "next-auth/jwt";
 import { auth } from "@/auth";
-import { getUserLibrary, saveUserLibrary } from "@/lib/db";
+import { saveUserLibrary } from "@/lib/db";
+import { resolveLibraryForUser } from "@/lib/libraryMigration";
 import type { UserLibrarySnapshot } from "@/lib/types";
-import { emptyLibrarySnapshot } from "@/lib/librarySnapshot";
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const data = await getUserLibrary(session.user.id);
-    return Response.json(data ?? emptyLibrarySnapshot);
+    const token = await getToken({
+      req: request,
+      secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+    });
+    const legacyUserId =
+      typeof token?.legacySub === "string" ? token.legacySub : undefined;
+
+    const data = await resolveLibraryForUser(session.user.id, {
+      legacyUserId,
+      allowSingleLegacy: true,
+    });
+    return Response.json(data);
   } catch (err) {
     console.error("GET /api/library failed:", err);
     return Response.json({ error: "Failed to load library." }, { status: 500 });

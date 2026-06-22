@@ -1,5 +1,8 @@
 import { neon } from "@neondatabase/serverless";
-import { normalizeUserLibrarySnapshot } from "./librarySnapshot";
+import {
+  normalizeUserLibrarySnapshot,
+  snapshotIsEmpty,
+} from "./librarySnapshot";
 import type { UserLibrarySnapshot } from "./types";
 
 function getSql() {
@@ -37,4 +40,24 @@ export async function saveUserLibrary(
      SET data = EXCLUDED.data, updated_at = NOW()`,
     [userId, payload],
   );
+}
+
+export async function findLegacyUuidLibraries(): Promise<
+  Array<{ userId: string; data: UserLibrarySnapshot }>
+> {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT user_id, data FROM user_libraries
+    WHERE user_id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+  `;
+
+  const libraries: Array<{ userId: string; data: UserLibrarySnapshot }> = [];
+
+  for (const row of rows) {
+    const data = normalizeUserLibrarySnapshot(row.data);
+    if (!data || snapshotIsEmpty(data)) continue;
+    libraries.push({ userId: String(row.user_id), data });
+  }
+
+  return libraries;
 }
