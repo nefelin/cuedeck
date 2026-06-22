@@ -9,7 +9,6 @@ type StorageMode = "guest" | "authenticated";
 const listeners = new Set<() => void>();
 let mode: StorageMode = "guest";
 let memorySnapshot: UserLibrarySnapshot = { library: [], cues: {} };
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let savePromise: Promise<void> | null = null;
 
 function bookmarkKey(videoId: string): string {
@@ -37,12 +36,16 @@ function notifyChange(): void {
 
 function scheduleCloudSave(): void {
   if (mode !== "authenticated") return;
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    void flushToCloud().catch((err) => {
-      console.error("Cloud save failed:", err);
-    });
-  }, 400);
+  void flushToCloud().catch((err) => {
+    console.error("Cloud save failed:", err);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("cuedeck-cloud-save-failed", {
+          detail: err instanceof Error ? err.message : "Save failed",
+        }),
+      );
+    }
+  });
 }
 
 export function onStorageChange(fn: () => void): () => void {
@@ -63,8 +66,6 @@ export function activateGuestMode(): void {
 export function resetStorageForTests(): void {
   mode = "guest";
   memorySnapshot = { library: [], cues: {} };
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = null;
   savePromise = null;
 }
 

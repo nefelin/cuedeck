@@ -22,6 +22,7 @@ import {
   clearLocalStorage,
   flushToCloud,
   getSnapshot,
+  getStorageMode,
   snapshotFromLocal,
 } from "@/lib/storage";
 
@@ -29,7 +30,9 @@ interface LibraryContextValue {
   isReady: boolean;
   isGuest: boolean;
   isAuthenticated: boolean;
+  isCloudActive: boolean;
   hydrationError: string | null;
+  saveError: string | null;
   retryHydration: () => void;
 }
 
@@ -37,7 +40,9 @@ const LibraryContext = createContext<LibraryContextValue>({
   isReady: false,
   isGuest: true,
   isAuthenticated: false,
+  isCloudActive: false,
   hydrationError: null,
+  saveError: null,
   retryHydration: () => {},
 });
 
@@ -68,6 +73,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const [isReady, setIsReady] = useState(false);
   const [hydrationError, setHydrationError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [pendingMerge, setPendingMerge] = useState<PendingMerge | null>(null);
   const [hydrationNonce, setHydrationNonce] = useState(0);
   const hydratedUserRef = useRef<string | null>(null);
@@ -151,6 +157,31 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     [pendingMerge, finishHydration],
   );
 
+  const applyCloudRefresh = useCallback((cloud: UserLibrarySnapshot) => {
+    const resolution = resolveLoginLibrary(cloud, getSnapshot());
+    if (resolution.action === "apply") {
+      activateAuthenticatedMode(resolution.snapshot);
+      if (resolution.persist) {
+        void saveUserLibrary(resolution.snapshot).catch((err) => {
+          console.error("Cloud refresh save failed:", err);
+          setSaveError("Could not save library changes to your account.");
+        });
+      }
+      return;
+    }
+
+    const merged = applySnapshotMerge(
+      resolution.cloud,
+      resolution.local,
+      "add-new",
+    );
+    activateAuthenticatedMode(merged);
+    void saveUserLibrary(merged).catch((err) => {
+      console.error("Cloud refresh merge save failed:", err);
+      setSaveError("Could not save library changes to your account.");
+    });
+  }, []);
+
   const retryHydration = useCallback(() => {
     hydratedUserRef.current = null;
     awaitingMergeRef.current = false;
@@ -171,13 +202,17 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       awaitingMergeRef.current = false;
       setPendingMerge(null);
       setHydrationError(null);
+      setSaveError(null);
       activateGuestMode();
       setIsReady(true);
       return;
     }
 
     const userId = session?.user?.id;
-    if (!userId) return;
+    if (!userId) {
+      setIsReady(false);
+      return;
+    }
 
     if (hydratedUserRef.current === userId) {
       setIsReady(true);
@@ -226,38 +261,43 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
 
       void fetchUserLibrary()
         .then((cloud) => {
-          const resolution = resolveLoginLibrary(cloud, getSnapshot());
-          if (resolution.action === "apply") {
-            activateAuthenticatedMode(resolution.snapshot);
-            if (resolution.persist) {
-              void saveUserLibrary(resolution.snapshot);
-            }
-          }
+          applyCloudRefresh(cloud);
+          setSaveError(null);
         })
         .catch((err) => {
           console.error("Cloud refresh failed:", err);
         });
     };
 
+    const onSaveFailed = (event: Event) => {
+      const detail = (event as CustomEvent<string>).detail;
+      setSaveError(detail || "Could not save to your account.");
+    };
+
     window.addEventListener("beforeunload", flushOnHide);
     document.addEventListener("visibilitychange", flushOnHide);
     document.addEventListener("visibilitychange", refreshOnFocus);
+    window.addEventListener("cuedeck-cloud-save-failed", onSaveFailed);
     return () => {
       window.removeEventListener("beforeunload", flushOnHide);
       document.removeEventListener("visibilitychange", flushOnHide);
       document.removeEventListener("visibilitychange", refreshOnFocus);
+      window.removeEventListener("cuedeck-cloud-save-failed", onSaveFailed);
     };
-  }, [status, session?.user?.id]);
+  }, [status, session?.user?.id, applyCloudRefresh]);
 
   const value = useMemo(
     () => ({
       isReady,
       isGuest: status !== "authenticated",
       isAuthenticated: status === "authenticated",
+      isCloudActive:
+        status !== "authenticated" || getStorageMode() === "authenticated",
       hydrationError,
+      saveError,
       retryHydration,
     }),
-    [isReady, status, hydrationError, retryHydration],
+    [isReady, status, hydrationError, saveError, retryHydration],
   );
 
   return (

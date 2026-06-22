@@ -28,10 +28,13 @@ export async function saveUserLibrary(
   snapshot: UserLibrarySnapshot,
 ): Promise<void> {
   const sql = getSql();
-  await sql`
-    INSERT INTO user_libraries (user_id, data, updated_at)
-    VALUES (${userId}, ${snapshot}, NOW())
-    ON CONFLICT (user_id) DO UPDATE
-    SET data = EXCLUDED.data, updated_at = NOW()
-  `;
+  const payload = JSON.stringify(snapshot);
+
+  await sql.query(
+    `INSERT INTO user_libraries (user_id, data, updated_at)
+     VALUES ($1, $2::jsonb, NOW())
+     ON CONFLICT (user_id) DO UPDATE
+     SET data = EXCLUDED.data, updated_at = NOW()`,
+    [userId, payload],
+  );
 }

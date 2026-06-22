@@ -37,6 +37,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   trustHost: true,
   callbacks: {
+    jwt({ token, account, profile }) {
+      const profileSub =
+        profile && typeof profile === "object" && "sub" in profile
+          ? String(profile.sub)
+          : undefined;
+      if (account?.providerAccountId) {
+        token.sub = account.providerAccountId;
+      } else if (profileSub) {
+        token.sub = profileSub;
+      }
+      return token;
+    },
     session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;

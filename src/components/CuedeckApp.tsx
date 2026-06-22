@@ -18,7 +18,8 @@ import type { View } from "@/lib/types";
 import { cn } from "@/lib/cn";
 
 export function CuedeckApp() {
-  const { isReady, hydrationError, retryHydration } = useLibrary();
+  const { isReady, isAuthenticated, isCloudActive, hydrationError, saveError, retryHydration } =
+    useLibrary();
   const { data: session } = useSession();
   const [view, setView] = useState<View>("library");
   const [activeVideo, setActiveVideo] = useState<{
@@ -72,7 +73,10 @@ export function CuedeckApp() {
     ];
   }, [isPlayer, activeVideo, session?.user, libraryCount]);
 
-  if (!isReady) {
+  const showLoading =
+    !isReady || (isAuthenticated && !isCloudActive);
+
+  if (showLoading) {
     return (
       <div className="relative z-[2] max-w-[1200px] mx-auto px-4 sm:px-5 pt-7 pb-20">
         <Header
@@ -117,6 +121,11 @@ export function CuedeckApp() {
         compact={!!isPlayer}
         menuItems={menuItems}
       />
+      {saveError && (
+        <p className="font-mono text-[11px] text-accent-dim m-0 mb-3">
+          {saveError}
+        </p>
+      )}
       {view === "library" ? (
         <LibraryView
           onOpenVideo={openVideo}
