@@ -46,13 +46,13 @@ export function CueSidebar({
   return (
     <aside
       className={cn(
-        "flex flex-col min-h-0 min-w-0 bg-white border-[1.5px] border-ink",
+        "flex flex-col min-h-0 min-w-0 bg-white border border-edge",
         "w-full flex-1 lg:flex-none lg:w-72 lg:max-w-[288px] lg:shrink-0",
         "lg:max-h-[min(720px,calc(100vh-12rem))]",
         className,
       )}
     >
-      <div className="sticky top-0 z-10 bg-paper border-b-[1.5px] border-ink px-3 py-2.5 flex flex-col gap-2 shrink-0">
+      <div className="sticky top-0 z-10 bg-paper border-b border-edge px-3 py-2.5 flex flex-col gap-2 shrink-0">
         <div className="flex gap-2">
           <button
             type="button"
@@ -64,7 +64,7 @@ export function CueSidebar({
           <button
             type="button"
             onClick={onAddDetailed}
-            className="font-mono text-[10px] uppercase tracking-wide px-2.5 py-2 text-muted bg-white border-[1.5px] border-line cursor-pointer hover:border-ink"
+            className="font-mono text-[10px] uppercase tracking-wide px-2.5 py-2 text-muted bg-white border border-line cursor-pointer hover:border-edge"
             title="Add with details"
           >
             +

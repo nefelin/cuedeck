@@ -1,4 +1,4 @@
-Loopstation / Cuedeck — YouTube practice bookmarks with cue loops.
+Cuedeck — YouTube practice bookmarks with cue loops.
 
 ## Specs
 

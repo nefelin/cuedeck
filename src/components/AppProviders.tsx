@@ -1,12 +1,12 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import { CloudSyncProvider } from "@/components/CloudSyncProvider";
+import { LibraryProvider } from "@/context/LibraryContext";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <CloudSyncProvider>{children}</CloudSyncProvider>
+      <LibraryProvider>{children}</LibraryProvider>
     </SessionProvider>
   );
 }

@@ -51,7 +51,7 @@ export function CaptureModal({
       aria-modal="true"
       aria-labelledby="capture-modal-title"
     >
-      <div className="w-full sm:max-w-lg bg-paper border-t-[1.5px] sm:border-[1.5px] border-ink p-4 sm:p-5 max-h-[88dvh] overflow-y-auto shadow-[0_-4px_0_var(--color-ink)] sm:shadow-[4px_4px_0_var(--color-ink)]">
+      <div className="w-full sm:max-w-lg bg-paper border-t sm:border border-edge p-4 sm:p-5 max-h-[88dvh] overflow-y-auto shadow-[0_-4px_0_var(--color-edge)] sm:shadow-[4px_4px_0_var(--color-edge)]">
         <div className="flex items-start justify-between gap-3 mb-4">
           <h2
             id="capture-modal-title"
@@ -80,7 +80,7 @@ export function CaptureModal({
               value={cueTitle}
               onChange={(e) => onTitleChange(e.target.value)}
               placeholder="e.g. Bridge — chord change"
-              className="font-display text-[13px] bg-white border-[1.5px] border-ink px-2.5 py-2 w-full"
+              className="font-display text-[13px] bg-white border border-edge px-2.5 py-2 w-full"
             />
           </div>
 
@@ -94,7 +94,7 @@ export function CaptureModal({
                 value={start}
                 onChange={(e) => onStartChange(e.target.value)}
                 placeholder="0:00"
-                className="font-mono text-[13px] bg-white border-[1.5px] border-ink px-2 py-1.5 w-[88px] text-center"
+                className="font-mono text-[13px] bg-white border border-edge px-2 py-1.5 w-[88px] text-center"
               />
               <Button
                 variant="ghost"
@@ -139,7 +139,7 @@ export function CaptureModal({
                   value={end}
                   onChange={(e) => onEndChange(e.target.value)}
                   placeholder="0:00"
-                  className="font-mono text-[13px] bg-white border-[1.5px] border-ink px-2 py-1.5 w-[88px] text-center"
+                  className="font-mono text-[13px] bg-white border border-edge px-2 py-1.5 w-[88px] text-center"
                 />
               </div>
               <label className="flex items-center gap-1.5 font-mono text-[10px] text-muted cursor-pointer select-none">
@@ -163,7 +163,7 @@ export function CaptureModal({
               value={desc}
               onChange={(e) => onDescChange(e.target.value)}
               placeholder="Notes for yourself…"
-              className="font-display text-[13px] bg-white border-[1.5px] border-ink px-2.5 py-2 w-full"
+              className="font-display text-[13px] bg-white border border-edge px-2.5 py-2 w-full"
             />
           </div>
 

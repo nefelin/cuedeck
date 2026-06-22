@@ -18,7 +18,7 @@ export function NudgeButtons({
   const btnClass =
     size === "sm"
       ? "font-mono text-[10px] px-1 py-0.5 text-muted hover:text-ink disabled:opacity-30 cursor-pointer bg-transparent border-0 shrink-0"
-      : "font-mono text-xs px-1.5 py-1 text-muted hover:text-ink disabled:opacity-30 cursor-pointer bg-transparent border border-line hover:border-ink shrink-0";
+      : "font-mono text-xs px-1.5 py-1 text-muted hover:text-ink disabled:opacity-30 cursor-pointer bg-transparent border border-line hover:border-edge shrink-0";
 
   return (
     <div className="flex items-center gap-0.5">

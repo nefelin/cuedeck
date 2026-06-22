@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { ImportConflictDialog, ImportErrorDialog } from "@/components/ImportDialog";
+import { SignInBanner } from "@/components/SignInBanner";
 import type { ImportPreview, ImportConflictStrategy } from "@/lib/exportImport";
 import {
   applyImport,
@@ -22,9 +23,10 @@ import { extractVideoId, fetchVideoTitle } from "@/lib/youtube";
 
 interface LibraryViewProps {
   onOpenVideo: (videoId: string, title: string) => void;
+  onLibraryChange?: () => void;
 }
 
-export function LibraryView({ onOpenVideo }: LibraryViewProps) {
+export function LibraryView({ onOpenVideo, onLibraryChange }: LibraryViewProps) {
   const [library, setLibrary] = useState<LibraryEntry[]>([]);
   const [urlInput, setUrlInput] = useState("");
   const [addError, setAddError] = useState("");
@@ -37,7 +39,8 @@ export function LibraryView({ onOpenVideo }: LibraryViewProps) {
       (a, b) => (b.lastOpened ?? 0) - (a.lastOpened ?? 0),
     );
     setLibrary(lib);
-  }, []);
+    onLibraryChange?.();
+  }, [onLibraryChange]);
 
   useEffect(() => {
     refresh();
@@ -160,6 +163,9 @@ export function LibraryView({ onOpenVideo }: LibraryViewProps) {
           onClose={() => setImportError(null)}
         />
       )}
+
+      <SignInBanner />
+
       <div className="flex gap-2 mb-2">
         <input
           type="text"
@@ -168,7 +174,7 @@ export function LibraryView({ onOpenVideo }: LibraryViewProps) {
           onKeyDown={(e) => e.key === "Enter" && handleAdd()}
           placeholder="Paste a YouTube link or video ID…"
           autoComplete="off"
-          className="flex-1 font-mono text-[13px] px-3 py-2.5 bg-white border-[1.5px] border-ink text-ink outline-none focus:shadow-[2px_2px_0_var(--color-ink)] placeholder:text-line"
+          className="flex-1 font-mono text-[13px] px-3 py-2.5 bg-white border border-edge text-ink outline-none focus:shadow-[2px_2px_0_var(--color-edge)] placeholder:text-line"
         />
         <Button variant="accent" onClick={handleAdd}>
           Add video
@@ -178,7 +184,7 @@ export function LibraryView({ onOpenVideo }: LibraryViewProps) {
         {addError}
       </p>
 
-      <div className="flex items-baseline justify-between mt-7 mb-3 border-b-2 border-ink pb-2 gap-3 flex-wrap">
+      <div className="flex items-baseline justify-between mt-7 mb-3 border-b border-edge pb-2 gap-3 flex-wrap">
         <h2 className="text-sm m-0 uppercase tracking-widest font-bold">
           Your videos
         </h2>
@@ -224,7 +230,7 @@ export function LibraryView({ onOpenVideo }: LibraryViewProps) {
                 onKeyDown={(e) =>
                   e.key === "Enter" && onOpenVideo(entry.videoId, entry.title)
                 }
-                className="bg-white border-[1.5px] border-ink cursor-pointer flex flex-col transition-[transform,box-shadow] duration-75 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0_var(--color-accent)]"
+                className="bg-white border border-edge cursor-pointer flex flex-col transition-[transform,box-shadow] duration-75 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0_var(--color-accent)]"
               >
                 <div
                   className="w-full aspect-video bg-ink bg-cover bg-center relative shrink-0"

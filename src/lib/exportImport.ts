@@ -1,4 +1,4 @@
-import type { Bookmark, LibraryEntry } from "./types";
+import type { Bookmark, LibraryEntry, UserLibrarySnapshot } from "./types";
 import { loadBookmarksFor, loadLibrary, saveBookmarksFor, upsertLibraryEntry } from "./storage";
 
 export const EXPORT_SCHEMA_VERSION = 1;
@@ -179,6 +179,106 @@ function mergeCues(
   const importedById = new Map(imported.map((c) => [c.id, c]));
   const kept = existing.filter((c) => !importedById.has(c.id));
   return [...kept, ...imported].sort((a, b) => a.start - b.start);
+}
+
+export interface SnapshotMergePreview {
+  conflicts: ImportConflictSummary[];
+  newVideoCount: number;
+  updatedVideoCount: number;
+}
+
+export function previewSnapshotMerge(
+  cloud: UserLibrarySnapshot,
+  local: UserLibrarySnapshot,
+): SnapshotMergePreview {
+  const cloudById = new Map(cloud.library.map((entry) => [entry.videoId, entry]));
+  const conflicts: ImportConflictSummary[] = [];
+  let newVideoCount = 0;
+  let updatedVideoCount = 0;
+
+  for (const entry of local.library) {
+    const existing = cloudById.get(entry.videoId);
+    if (existing) {
+      updatedVideoCount++;
+    } else {
+      newVideoCount++;
+    }
+
+    const cloudCues = cloud.cues[entry.videoId] ?? [];
+    const localCues = local.cues[entry.videoId] ?? [];
+    const existingIds = new Set(cloudCues.map((cue) => cue.id));
+    const conflictingCueIds = localCues
+      .map((cue) => cue.id)
+      .filter((id) => existingIds.has(id));
+
+    if (conflictingCueIds.length > 0) {
+      conflicts.push({
+        videoId: entry.videoId,
+        title: entry.title || existing?.title || entry.videoId,
+        conflictingCueIds,
+      });
+    }
+  }
+
+  return { conflicts, newVideoCount, updatedVideoCount };
+}
+
+export function applySnapshotMerge(
+  cloud: UserLibrarySnapshot,
+  local: UserLibrarySnapshot,
+  strategy: ImportConflictStrategy,
+): UserLibrarySnapshot {
+  if (strategy === "abort") {
+    return {
+      library: cloud.library.map((entry) => ({ ...entry })),
+      cues: Object.fromEntries(
+        Object.entries(cloud.cues).map(([videoId, cues]) => [
+          videoId,
+          cues.map((cue) => ({ ...cue })),
+        ]),
+      ),
+    };
+  }
+
+  const libraryById = new Map(
+    cloud.library.map((entry) => [entry.videoId, { ...entry }]),
+  );
+
+  for (const entry of local.library) {
+    const existing = libraryById.get(entry.videoId);
+    if (existing) {
+      libraryById.set(entry.videoId, {
+        ...existing,
+        title: entry.title || existing.title,
+        lastOpened: Math.max(existing.lastOpened ?? 0, entry.lastOpened ?? 0),
+      });
+    } else {
+      libraryById.set(entry.videoId, { ...entry });
+    }
+  }
+
+  const cues: Record<string, Bookmark[]> = {};
+  const videoIds = new Set([
+    ...cloud.library.map((entry) => entry.videoId),
+    ...local.library.map((entry) => entry.videoId),
+  ]);
+
+  for (const videoId of videoIds) {
+    const cloudCues = cloud.cues[videoId] ?? [];
+    const localCues = local.cues[videoId] ?? [];
+    if (localCues.length === 0) {
+      cues[videoId] = cloudCues.map((cue) => ({ ...cue }));
+    } else if (cloudCues.length === 0) {
+      cues[videoId] = localCues.map((cue) => ({ ...cue }));
+    } else {
+      cues[videoId] = mergeCues(cloudCues, localCues, strategy);
+    }
+  }
+
+  return {
+    library: Array.from(libraryById.values()),
+    cues,
+  };
 }
 
 export function applyImport(

@@ -1,12 +1,33 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 
-const googleClientId =
-  process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret =
-  process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
+function env(name: string, fallback?: string): string | undefined {
+  const value = process.env[name] ?? (fallback ? process.env[fallback] : undefined);
+  return value?.trim().replace(/^["']|["']$/g, "");
+}
+
+const googleClientId = env("AUTH_GOOGLE_ID", "GOOGLE_CLIENT_ID");
+const googleClientSecret = env("AUTH_GOOGLE_SECRET", "GOOGLE_CLIENT_SECRET");
+const authSecret = env("AUTH_SECRET", "NEXTAUTH_SECRET");
+
+if (!authSecret && process.env.NODE_ENV === "production") {
+  console.error(
+    "[auth] Missing AUTH_SECRET on this deployment. Add it in Vercel → Settings → Environment Variables (Production), then redeploy.",
+  );
+}
+
+if (!googleClientId || !googleClientSecret) {
+  console.error(
+    "[auth] Missing Google OAuth credentials. Set AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET on Vercel, then redeploy.",
+  );
+} else if (!googleClientId.endsWith(".apps.googleusercontent.com")) {
+  console.error(
+    "[auth] AUTH_GOOGLE_ID does not look like a Google OAuth client ID. Copy the Client ID from Google Cloud Console (ends with .apps.googleusercontent.com).",
+  );
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: authSecret,
   providers: [
     Google({
       clientId: googleClientId,

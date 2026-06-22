@@ -5,7 +5,8 @@
   --ink: #15161a;
   --paper: #eeebe4;
   --paper-dim: #e2ded3;
-  --line: #9a988e;
+  --line: #a8a093;
+  --edge: #6f675c;
   --accent: #ff5a36;
   --accent-dim: #c9421f;
   --tape: #2f4f3e;
@@ -17,6 +18,7 @@
   --color-paper: var(--paper);
   --color-paper-dim: var(--paper-dim);
   --color-line: var(--line);
+  --color-edge: var(--edge);
   --color-accent: var(--accent);
   --color-accent-dim: var(--accent-dim);
   --color-tape: var(--tape);

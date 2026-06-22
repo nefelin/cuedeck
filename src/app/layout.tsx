@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Loopstation — practice bookmarks for YouTube",
+  title: "Cuedeck — practice bookmarks for YouTube",
   description: "Bookmark and loop tool for YouTube practice sessions",
 };
 

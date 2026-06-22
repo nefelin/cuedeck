@@ -13,16 +13,18 @@ import {
 } from "@/lib/storage";
 import type { Bookmark, DeckStatusKind } from "@/lib/types";
 import { fmtTime, genId, parseTime } from "@/lib/youtube";
-import { Button } from "@/components/Button";
-import { downloadExport, exportVideo } from "@/lib/exportImport";
 
 interface PlayerViewProps {
   videoId: string;
   titleHint: string;
-  onBack: () => void;
+  onTitleChange?: (title: string) => void;
 }
 
-export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
+export function PlayerView({
+  videoId,
+  titleHint,
+  onTitleChange,
+}: PlayerViewProps) {
   const { ready: ytReady, failed: ytFailed } = useYouTubeApi();
 
   const playerRef = useRef<YT.Player | null>(null);
@@ -93,6 +95,10 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
   useEffect(() => {
     setTitle(titleHint);
   }, [titleHint]);
+
+  useEffect(() => {
+    onTitleChange?.(title);
+  }, [title, onTitleChange]);
 
   useEffect(() => {
     const onStorageUpdate = () => {
@@ -437,27 +443,6 @@ export function PlayerView({ videoId, titleHint, onBack }: PlayerViewProps) {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 max-lg:min-h-0">
-      <div className="flex items-center gap-2 mb-2 min-w-0 shrink-0">
-        <button
-          type="button"
-          onClick={onBack}
-          className="font-mono text-xs text-ink cursor-pointer flex items-center gap-1 uppercase tracking-wide bg-transparent border-0 p-0 hover:text-accent-dim shrink-0"
-        >
-          ← Library
-        </button>
-        <span className="text-sm font-semibold truncate flex-1 min-w-0">{title}</span>
-        <Button
-          variant="ghost"
-          size="small"
-          onClick={() =>
-            downloadExport(exportVideo(videoId, title), `cuedeck-${videoId}.json`)
-          }
-          className="shrink-0"
-        >
-          Export
-        </Button>
-      </div>
-
       <div className="flex flex-col lg:flex-row-reverse flex-1 min-h-0 min-w-0 gap-0 lg:gap-4 overflow-hidden">
         <div className="shrink-0 min-w-0 lg:flex-1 lg:min-w-0">
           <VideoDeck

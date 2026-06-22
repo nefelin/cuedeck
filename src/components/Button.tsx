@@ -4,7 +4,7 @@ type ButtonVariant = "default" | "ghost" | "accent" | "tape";
 
 const variants: Record<ButtonVariant, string> = {
   default: "bg-ink text-paper border-ink",
-  ghost: "bg-transparent text-ink border-ink",
+  ghost: "bg-transparent text-ink border-edge",
   accent: "bg-accent border-accent text-white hover:shadow-[2px_2px_0_var(--color-ink)]",
   tape: "bg-tape border-tape text-white hover:shadow-[2px_2px_0_var(--color-ink)]",
 };
