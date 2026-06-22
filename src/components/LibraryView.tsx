@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { ImportConflictDialog, ImportErrorDialog } from "@/components/ImportDialog";
 import { SignInBanner } from "@/components/SignInBanner";
@@ -17,6 +17,7 @@ import {
   loadLibrary,
   loadBookmarksFor,
   removeLibraryEntry,
+  sortLibraryByLastAccessed,
   upsertLibraryEntry,
 } from "@/lib/storage";
 import { extractVideoId, fetchVideoTitle } from "@/lib/youtube";
@@ -28,6 +29,7 @@ interface LibraryViewProps {
 
 export function LibraryView({ onOpenVideo, onLibraryChange }: LibraryViewProps) {
   const [library, setLibrary] = useState<LibraryEntry[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [urlInput, setUrlInput] = useState("");
   const [addError, setAddError] = useState("");
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
@@ -35,12 +37,17 @@ export function LibraryView({ onOpenVideo, onLibraryChange }: LibraryViewProps) 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(() => {
-    const lib = loadLibrary().sort(
-      (a, b) => (b.lastOpened ?? 0) - (a.lastOpened ?? 0),
-    );
-    setLibrary(lib);
+    setLibrary(sortLibraryByLastAccessed(loadLibrary()));
     onLibraryChange?.();
   }, [onLibraryChange]);
+
+  const visibleLibrary = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return library;
+    return library.filter((entry) =>
+      (entry.title || entry.videoId).toLowerCase().includes(query),
+    );
+  }, [library, searchQuery]);
 
   useEffect(() => {
     refresh();
@@ -77,6 +84,11 @@ export function LibraryView({ onOpenVideo, onLibraryChange }: LibraryViewProps) 
     });
 
     onOpenVideo(id, entry.title);
+  };
+
+  const openVideo = (entry: LibraryEntry) => {
+    upsertLibraryEntry({ videoId: entry.videoId, lastOpened: Date.now() });
+    onOpenVideo(entry.videoId, entry.title);
   };
 
   const handleRename = (entry: LibraryEntry, e: React.MouseEvent) => {
@@ -190,7 +202,9 @@ export function LibraryView({ onOpenVideo, onLibraryChange }: LibraryViewProps) 
         </h2>
         <div className="flex items-center gap-2 ml-auto">
           <span className="font-mono text-[11px] text-muted">
-            {library.length} saved
+            {searchQuery.trim()
+              ? `${visibleLibrary.length} of ${library.length}`
+              : `${library.length} saved`}
           </span>
           <Button
             variant="ghost"
@@ -210,6 +224,19 @@ export function LibraryView({ onOpenVideo, onLibraryChange }: LibraryViewProps) 
         </div>
       </div>
 
+      {library.length > 0 && (
+        <div className="mb-3">
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by title…"
+            aria-label="Search videos by title"
+            className="w-full font-mono text-[13px] px-3 py-2 bg-white border border-edge text-ink outline-none focus:shadow-[2px_2px_0_var(--color-edge)] placeholder:text-line"
+          />
+        </div>
+      )}
+
       {library.length === 0 ? (
         <div className="font-mono text-xs text-line py-10 px-5 text-center border-[1.5px] border-dashed border-line">
           <div className="font-display text-[15px] text-ink font-semibold mb-1.5">
@@ -217,18 +244,25 @@ export function LibraryView({ onOpenVideo, onLibraryChange }: LibraryViewProps) 
           </div>
           Paste a YouTube link above to start your first practice session.
         </div>
+      ) : visibleLibrary.length === 0 ? (
+        <div className="font-mono text-xs text-line py-10 px-5 text-center border-[1.5px] border-dashed border-line">
+          <div className="font-display text-[15px] text-ink font-semibold mb-1.5">
+            No matches
+          </div>
+          No videos match &ldquo;{searchQuery.trim()}&rdquo;.
+        </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3.5">
-          {library.map((entry) => {
+          {visibleLibrary.map((entry) => {
             const bmCount = loadBookmarksFor(entry.videoId).length;
             return (
               <div
                 key={entry.videoId}
                 role="button"
                 tabIndex={0}
-                onClick={() => onOpenVideo(entry.videoId, entry.title)}
+                onClick={() => openVideo(entry)}
                 onKeyDown={(e) =>
-                  e.key === "Enter" && onOpenVideo(entry.videoId, entry.title)
+                  e.key === "Enter" && openVideo(entry)
                 }
                 className="bg-white border border-edge cursor-pointer flex flex-col transition-[transform,box-shadow] duration-75 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0_var(--color-accent)]"
               >

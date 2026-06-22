@@ -119,6 +119,14 @@ export function loadLibrary(): LibraryEntry[] {
   return loadLibraryFromLocal();
 }
 
+export function sortLibraryByLastAccessed(
+  library: LibraryEntry[],
+): LibraryEntry[] {
+  return [...library].sort(
+    (a, b) => (b.lastOpened ?? 0) - (a.lastOpened ?? 0),
+  );
+}
+
 function saveLibraryToLocal(lib: LibraryEntry[]): void {
   localStorage.setItem(LIB_KEY, JSON.stringify(lib));
 }
